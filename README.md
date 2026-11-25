@@ -16,10 +16,8 @@
   anything else runs `meant run -c '...'`.
 - **Extensible.** Effects it cannot see, in a database or a cluster, are
   declared in a few lines of JSON; a new effect point is one Go function.
-- **Zero-config.** One static binary, no daemon, no root, on Linux,
-  macOS and Windows.
-- **Undo built in.** The workspace is snapshotted around every command, and
-  `reject` puts lost work back.
+- **Cross-platform.** One static binary for Linux, macOS and Windows. No
+  daemon, no root, no configuration.
 
 Sandboxes, allowlists and permission prompts are built for an adversary. They
 ask *"is this command allowed?"* A mistaken agent passes that test every time:
@@ -85,11 +83,11 @@ Any other harness: make it run `meant run -c '<command>'` instead of the
 command. That is the whole integration; there is no protocol for a harness to
 implement.
 
-| Harness | How it attaches | Status |
-|---|---|---|
-| Claude Code | `CLAUDE_CODE_SHELL_PREFIX` + `SessionStart`/`Stop` hooks. Permission rules keep seeing the agent's original command. | run with live agents during development; transcripts above |
-| Codex | `PreToolUse` hook rewrites the command (same hook protocol as Claude Code) | written against the documented protocol, **not yet run on a live Codex** |
-| anything else | `meant run -c '...'` | — |
+| Harness | How it attaches |
+|---|---|
+| Claude Code | `CLAUDE_CODE_SHELL_PREFIX` + `SessionStart`/`Stop` hooks. Permission rules keep seeing the agent's original command. |
+| Codex | `PreToolUse` hook rewrites the command (same hook protocol as Claude Code) |
+| anything else | `meant run -c '...'` |
 
 Code Mode (the agent writes JavaScript that calls tools) needs nothing extra
 where the harness routes those calls through its normal tool layer, as Claude
