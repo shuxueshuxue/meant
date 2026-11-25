@@ -4,11 +4,6 @@
 
 **Lightweight, cross-platform safety for agent shell commands.**
 
-Your coding agent did not go rogue when it deleted the other lanes. `LANE`
-was empty, and `rm -rf "$STORE/$LANE"*` said something different from what
-the agent had in mind. It believed `$HOME` was still its temp dir. It believed
-`pgrep -f node` returned only the server it had started.
-
 Sandboxes, allowlists and permission prompts are built for an adversary. They
 ask *"is this command allowed?"* A mistaken agent passes that test every time:
 the command is allowed, it just does not do what the agent thinks it does.
