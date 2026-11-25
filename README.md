@@ -4,13 +4,18 @@
 
 **Lightweight, cross-platform safety for agent shell commands.**
 
-- **Effect-based.** Judges what a command does (the real paths, pids and
-  hosts it touches), never its name. No allowlist, no shell parser.
-- **Exec-time.** Sees the arguments after the shell has expanded every
-  variable, glob and `$(...)`, inside scripts and subprocesses too.
+- **Burdenless for your agent.** Ordinary commands pass with one line at
+  most: nothing to declare, nothing to confirm, no extra calls. It speaks only when a
+  command does something surprising, and then the whole protocol is `ack` or
+  `reject`.
+- **Effect-based, at exec time.** Judges what a command does (the real paths,
+  pids and hosts it touches, after the shell has expanded every variable and
+  glob), never its name. No allowlist, no shell parser.
 - **ssh-aware.** Follows commands to the hosts you add and judges them there.
 - **Harness-agnostic.** One command attaches it to Claude Code or Codex;
   anything else runs `meant run -c '...'`.
+- **Extensible.** Effects it cannot see, in a database or a cluster, are
+  declared in a few lines of JSON; a new effect point is one Go function.
 - **Zero-config.** One static binary, no daemon, no root. Linux and macOS;
   Windows builds and is not yet tested.
 - **Undo built in.** The workspace is snapshotted around every command, and
