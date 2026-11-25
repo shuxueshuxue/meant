@@ -97,10 +97,8 @@ func Hook() int {
 		}
 		self, _ := os.Executable()
 		ev.Input["command"] = core.Quote(self) + " run -s " + core.Quote(sess.ID) + " -c " + core.Quote(cmd)
-		// Codex takes a rewrite only together with "allow"; it is not a
-		// verdict on the command, which meant gives when it runs.
 		return emit(map[string]interface{}{"hookSpecificOutput": map[string]interface{}{
-			"hookEventName": "PreToolUse", "permissionDecision": "allow", "updatedInput": ev.Input}})
+			"hookEventName": "PreToolUse", "updatedInput": ev.Input}})
 	}
 	return 0
 }
