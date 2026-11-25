@@ -1,0 +1,27 @@
+[
+ {
+  "cmd": "ls $STORE",
+  "out": "lane1\nlane2\nlane7\n",
+  "exit": 0
+ },
+ {
+  "cmd": "LANE=$(cat .lane); rm -rf \"$STORE/$LANE\"* && echo cleaned",
+  "out": "meant: STOPPED. The command was cut off before this took effect:\n  rm -rf /dev/shm/store/lane1 /dev/shm/store/lane2 /dev/shm/store/lane7\n    would delete 90 files in 3 dirs (243 B) under /dev/shm/store: lane1, lane2, lane7\n    ! it is outside your workspace and temp directories\n  Everything before it in the command already ran; nothing after it did.\n  Meant it? Run it again with `ack a2e1` in front (`ack a2e1 && ...`). Did not? Fix the command.\n",
+  "exit": 125
+ },
+ {
+  "cmd": "wc -c < .lane",
+  "out": "0\n",
+  "exit": 0
+ },
+ {
+  "cmd": "echo lane7 > .lane; LANE=$(cat .lane); rm -rf \"$STORE/$LANE\"* && echo cleaned",
+  "out": "cleaned\nmeant: deleted 30 files in 1 dir (81 B) under /dev/shm/store/lane7 \u00b7 files ~1 (.lane)\n",
+  "exit": 0
+ },
+ {
+  "cmd": "ls $STORE",
+  "out": "lane1\nlane2\n",
+  "exit": 0
+ }
+]
