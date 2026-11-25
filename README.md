@@ -2,7 +2,7 @@
 
 # meant
 
-**A second look for agent shells, at the moment of `exec`.**
+**Lightweight, cross-platform safety for agent shell commands.**
 
 Your coding agent did not go rogue when it deleted the other lanes. `LANE`
 was empty, and `rm -rf "$STORE/$LANE"*` said something different from what
