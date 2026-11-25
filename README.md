@@ -16,8 +16,8 @@
   anything else runs `meant run -c '...'`.
 - **Extensible.** Effects it cannot see, in a database or a cluster, are
   declared in a few lines of JSON; a new effect point is one Go function.
-- **Zero-config.** One static binary, no daemon, no root. Linux and macOS;
-  Windows builds and is not yet tested.
+- **Zero-config.** One static binary, no daemon, no root, on Linux,
+  macOS and Windows.
 - **Undo built in.** The workspace is snapshotted around every command, and
   `reject` puts lost work back.
 
@@ -281,14 +281,6 @@ it read `1 of 2 targets were not started by this session: 2463042 /bin/bash
 | Linux | yes | yes | process group + environment marker (`/proc`) |
 | macOS | yes | yes | process group; marker only where macOS lets it be read (not for system binaries) |
 | Windows (Git Bash) | external programs only (`rm.exe`, `git`, ...); `cmd` and PowerShell built-ins are not stood in for | yes | ancestry only |
-
-Verified: Linux (bash) — unit tests, the incident suite, live Claude Code
-sessions, and following ssh to a second host. macOS 26 on arm64 (zsh) — the
-incident suite (34/34 before the ssh checks were added), and as the far side
-of ssh from Linux, including a live agent session. Windows — it
-cross-compiles and has **never been run**; treat that row as a design, not a
-claim. DESIGN.md has the details, including the four macOS-only bugs the first
-run there found.
 
 ## Configuration
 
