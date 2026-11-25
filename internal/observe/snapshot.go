@@ -321,7 +321,7 @@ func (s *Snapshots) hash(full string) string {
 		out, _ := s.run(10*time.Second, []byte(target), "hash-object", "--stdin")
 		return strings.TrimSpace(string(out))
 	}
-	out, err := s.run(30*time.Second, nil, "hash-object", "--no-filters", "--", full)
+	out, err := s.run(30*time.Second, nil, "hash-object", "--", full) // through the same filters (autocrlf) as the snapshot
 	if err != nil {
 		return "?"
 	}

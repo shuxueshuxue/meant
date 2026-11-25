@@ -5,9 +5,7 @@ package plat
 
 import (
 	"os"
-	"os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -43,34 +41,6 @@ type FileFacts struct {
 	Dev    uint64
 	Device bool // character or block device
 	Setuid bool
-}
-
-// Who is the identity effects are judged against: the invoking user, even
-// when the process has been elevated with sudo.
-func Who() int {
-	if s := os.Getenv("SUDO_UID"); s != "" && os.Geteuid() == 0 {
-		if n, err := strconv.Atoi(s); err == nil {
-			return n
-		}
-	}
-	return os.Getuid()
-}
-
-// RealHome is the home directory from the account database. $HOME is not
-// trusted: commands routinely repoint it at a temp dir and forget.
-func RealHome() string {
-	if u, err := user.LookupId(strconv.Itoa(Who())); err == nil && u.HomeDir != "" {
-		return u.HomeDir
-	}
-	h, _ := os.UserHomeDir()
-	return h
-}
-
-func UserName(uid int) string {
-	if u, err := user.LookupId(strconv.Itoa(uid)); err == nil {
-		return u.Username
-	}
-	return "uid " + strconv.Itoa(uid)
 }
 
 // StateRoot is where sessions, snapshots and shims live.

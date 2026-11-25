@@ -22,7 +22,7 @@ func world(t *testing.T) (*World, string) {
 	for _, d := range []string{ws, scratch, filepath.Join(home, "Documents")} {
 		os.MkdirAll(d, 0o755)
 	}
-	return &World{Workspace: ws, Home: home, Zones: []string{scratch}, UID: os.Getuid(),
+	return &World{Workspace: ws, Home: home, Zones: []string{scratch}, UID: plat.Who(),
 		Limits: Limits{OutsideEntries: 5, LostFiles: 3}}, root
 }
 
@@ -83,7 +83,7 @@ func TestDeleteForeign(t *testing.T) {
 	w, root := world(t)
 	shared := filepath.Join(root, "scratch", "shared")
 	fill(t, shared, 3)
-	w.UID = os.Getuid() + 1
+	w.UID = plat.Who() + 1
 	e := w.Delete("rm", []string{shared}, true)
 	if e == nil || e.Level != core.Surprise || !strings.Contains(why(e), "belong to other users") {
 		t.Fatalf("deleting other users' files in a shared temp dir: %+v", e)

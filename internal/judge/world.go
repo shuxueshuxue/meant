@@ -176,14 +176,18 @@ func groups(session string) []int {
 // also forgets groups with no live member, so that a recycled group id is
 // not mistaken for the session's.
 func KeepGroups(session string, add int, procs map[int]plat.Proc) {
-	live := map[int]bool{}
-	for _, p := range procs {
-		live[p.PGID] = true
+	live := func(g int) bool {
+		for _, p := range procs {
+			if plat.InGroup(p, g) {
+				return true
+			}
+		}
+		return false
 	}
 	var keep []string
 	seen := map[int]bool{}
 	for _, g := range append(groups(session), add) {
-		if g > 1 && !seen[g] && (procs == nil || live[g] || g == add) {
+		if g > 1 && !seen[g] && (procs == nil || g == add || live(g)) {
 			seen[g] = true
 			keep = append(keep, strconv.Itoa(g))
 		}

@@ -21,7 +21,7 @@ func Leftovers(procs map[int]plat.Proc, cmdDir string, group int) []plat.Proc {
 		if p.PID == runner {
 			continue
 		}
-		if (cmdDir != "" && p.CmdDir == cmdDir) || (group > 1 && p.PGID == group) || plat.Descends(procs, p.PID, runner) {
+		if (cmdDir != "" && p.CmdDir == cmdDir) || plat.InGroup(p, group) || plat.Descends(procs, p.PID, runner) {
 			left = append(left, p)
 		}
 	}

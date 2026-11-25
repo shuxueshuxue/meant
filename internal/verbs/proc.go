@@ -45,7 +45,7 @@ func kill(w *judge.World, argv []string) *core.Effect {
 		if err != nil {
 			return nil // a name or job spec: not something this shim can resolve
 		}
-		pids = append(pids, n)
+		pids = append(pids, plat.NativePID(n))
 	}
 	return w.Signal(quote(argv), pids)
 }

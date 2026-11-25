@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -30,10 +31,95 @@ func exeNames(name string) []string {
 
 func isExec(fi fs.FileInfo) bool { return true }
 
-// Facts on Windows carries only what the judge can use without ACL walks:
-// link count and ownership are left neutral.
-func Facts(fi fs.FileInfo) FileFacts {
-	return FileFacts{UID: Who(), Nlink: 1, Device: fi.Mode()&fs.ModeDevice != 0}
+// Windows identities are SIDs. The judge compares small integers, so each
+// SID seen gets a stable number here, and keeps its account name for people.
+var (
+	sids  = map[string]int{}
+	names = map[int]string{}
+)
+
+func uidOf(sid *syscall.SID) int {
+	str, err := sid.String()
+	if err != nil {
+		return -1
+	}
+	if n, ok := sids[str]; ok {
+		return n
+	}
+	n := len(sids) + 1000
+	sids[str] = n
+	if acct, dom, _, err := sid.LookupAccount(""); err == nil {
+		names[n] = dom + `\` + acct
+	} else {
+		names[n] = str
+	}
+	return n
+}
+
+// Who is the account this process runs as.
+func Who() int {
+	t, err := syscall.OpenCurrentProcessToken()
+	if err != nil {
+		return -1
+	}
+	defer t.Close()
+	u, err := t.GetTokenUser()
+	if err != nil {
+		return -1
+	}
+	return uidOf(u.User.Sid)
+}
+
+// RealHome is the profile directory of the account, not %USERPROFILE%.
+func RealHome() string {
+	if u, err := user.Current(); err == nil && u.HomeDir != "" {
+		return u.HomeDir
+	}
+	h, _ := os.UserHomeDir()
+	return h
+}
+
+func UserName(uid int) string {
+	if n, ok := names[uid]; ok {
+		return n
+	}
+	return "uid " + strconv.Itoa(uid)
+}
+
+var (
+	advapi32             = syscall.NewLazyDLL("advapi32.dll")
+	getNamedSecurityInfo = advapi32.NewProc("GetNamedSecurityInfoW")
+)
+
+// Facts reads the owner from the file's security descriptor and the link
+// count from its handle: two calls per file, which is what a recursive
+// judgement costs on Windows.
+func Facts(path string, fi fs.FileInfo) FileFacts {
+	f := FileFacts{UID: Who(), Nlink: 1, Device: fi.Mode()&fs.ModeDevice != 0}
+	p, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return f
+	}
+	const seFileObject, ownerInfo = 1, 1
+	var owner *syscall.SID
+	var sd uintptr
+	if r, _, _ := getNamedSecurityInfo.Call(uintptr(unsafe.Pointer(p)), seFileObject, ownerInfo,
+		uintptr(unsafe.Pointer(&owner)), 0, 0, 0, uintptr(unsafe.Pointer(&sd))); r == 0 && owner != nil {
+		f.UID = uidOf(owner)
+		syscall.LocalFree(syscall.Handle(sd))
+	}
+	const readAttributes = 0x80
+	h, err := syscall.CreateFile(p, readAttributes, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE,
+		nil, syscall.OPEN_EXISTING, syscall.FILE_FLAG_BACKUP_SEMANTICS|syscall.FILE_FLAG_OPEN_REPARSE_POINT, 0)
+	if err == nil {
+		var info syscall.ByHandleFileInformation
+		if syscall.GetFileInformationByHandle(h, &info) == nil {
+			f.Nlink = uint64(info.NumberOfLinks)
+			f.Dev = uint64(info.VolumeSerialNumber)
+		}
+		syscall.CloseHandle(h)
+	}
+	return f
 }
 
 // IsFSRoot reports whether dir is a drive root or a reparse point (junction,
@@ -96,8 +182,6 @@ func Exec(path string, argv []string) error {
 func Kill(pid int, hard bool) {
 	_ = exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid)).Run()
 }
-
-func KillGroup(pgid int, hard bool) {}
 
 // Link makes dst an alias of the meant binary: a hard link where the volume
 // allows it, a copy otherwise.

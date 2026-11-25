@@ -36,7 +36,7 @@ func (w *World) scan(root string, recursive bool) census {
 	deadline := time.Now().Add(scanTime)
 	var rootDev uint64
 	look := func(path string, fi fs.FileInfo, isRoot bool) {
-		f := plat.Facts(fi)
+		f := plat.Facts(path, fi)
 		c.Entries++
 		if fi.IsDir() {
 			c.Dirs++
@@ -285,7 +285,7 @@ func (w *World) ours(procs map[int]plat.Proc, p plat.Proc) bool {
 		return true
 	}
 	for _, g := range groups(w.Session) {
-		if g == p.PGID {
+		if plat.InGroup(p, g) {
 			return true
 		}
 	}

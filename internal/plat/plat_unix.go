@@ -5,7 +5,9 @@ package plat
 import (
 	"io/fs"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"syscall"
 )
 
@@ -20,7 +22,35 @@ func exeNames(name string) []string { return []string{name} }
 
 func isExec(fi fs.FileInfo) bool { return fi.Mode()&0o111 != 0 }
 
-func Facts(fi fs.FileInfo) FileFacts {
+// Who is the identity effects are judged against: the invoking user, even
+// when the process has been elevated with sudo.
+func Who() int {
+	if s := os.Getenv("SUDO_UID"); s != "" && os.Geteuid() == 0 {
+		if n, err := strconv.Atoi(s); err == nil {
+			return n
+		}
+	}
+	return os.Getuid()
+}
+
+// RealHome is the home directory from the account database. $HOME is not
+// trusted: commands routinely repoint it at a temp dir and forget.
+func RealHome() string {
+	if u, err := user.LookupId(strconv.Itoa(Who())); err == nil && u.HomeDir != "" {
+		return u.HomeDir
+	}
+	h, _ := os.UserHomeDir()
+	return h
+}
+
+func UserName(uid int) string {
+	if u, err := user.LookupId(strconv.Itoa(uid)); err == nil {
+		return u.Username
+	}
+	return "uid " + strconv.Itoa(uid)
+}
+
+func Facts(path string, fi fs.FileInfo) FileFacts {
 	st, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
 		return FileFacts{UID: -1, Nlink: 1}
@@ -44,7 +74,7 @@ func IsFSRoot(dir string) bool {
 	if err1 != nil || err2 != nil || !a.IsDir() {
 		return false
 	}
-	return Facts(a).Dev != Facts(b).Dev
+	return Facts(dir, a).Dev != Facts(filepath.Dir(dir), b).Dev
 }
 
 // SystemDirs are trees whose ownership and modes the machine itself relies on.
@@ -77,6 +107,18 @@ func KillGroup(pgid int, hard bool) {
 		Kill(-pgid, hard)
 	}
 }
+
+// InGroup reports whether a process belongs to a process group.
+func InGroup(p Proc, group int) bool { return group > 1 && p.PGID == group }
+
+// JoinGroup is a no-op where the group is set at start (Setpgid).
+func JoinGroup(pid int) {}
+
+// Outlive does nothing on Unix: a process group lasts while any member does.
+func Outlive(group int, procs map[int]Proc) {}
+
+// NativePID is the identity here; see the Windows version.
+func NativePID(pid int) int { return pid }
 
 // Link makes dst an alias of the meant binary.
 func Link(self, dst string) error { return os.Symlink(self, dst) }

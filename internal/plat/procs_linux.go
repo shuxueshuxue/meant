@@ -46,7 +46,7 @@ func readProc(pid int) (Proc, bool) {
 		}
 	}
 	if fi, err := os.Stat(dir); err == nil {
-		p.UID = Facts(fi).UID
+		p.UID = Facts(dir, fi).UID
 	}
 	if raw, err := os.ReadFile(dir + "/cmdline"); err == nil && len(raw) > 0 {
 		p.Cmd = strings.TrimSpace(strings.ReplaceAll(string(raw), "\x00", " "))

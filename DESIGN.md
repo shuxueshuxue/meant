@@ -292,7 +292,26 @@ the shell. macOS has since been the far side of ssh from Linux, including in a
 live agent session. *A mechanism verified on one platform is a mechanism for
 that platform.*
 
-**Windows.** It cross-compiles and passes vet, and has **never been run**.
+**Windows.** The first real run, on a Windows workstation under Git Bash,
+found five assumptions the Unix code had made silently:
+
+- File owners and link counts were stubbed. They now come from the file's
+  security descriptor (owner SID) and its file information (link count,
+  volume serial).
+- A process group is a job object here. The shell starts suspended, joins a
+  job named after it, then resumes, so nothing it starts escapes the job.
+  A job's name lasts only while some process holds a handle to it. A runner
+  that leaves members behind therefore hands each of them a handle, so the
+  next command can still recognise them.
+- Git Bash has its own pid space. `kill 13218` names an MSYS pid, which maps
+  to a Windows pid through `/proc/<pid>/winpid`.
+- Git Bash puts its own directories at the front of `PATH`, so "the stand-ins
+  are on `PATH`" is not enough. They have to come first.
+- `core.autocrlf` changes the bytes git stores, so file hashes go through the
+  same filters as the snapshot does.
+
+After these fixes, the suite passed 36/36. Two cases were skipped: no
+`pkill`, and no `sshd` to stand in for another machine.
 
 ## Lessons
 

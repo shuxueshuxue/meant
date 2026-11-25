@@ -20,4 +20,9 @@ func defaultShell(program string) (string, []string) {
 	return os.Getenv("ComSpec"), []string{"/D", "/S", "/C", program}
 }
 
-func ownGroup(cmd *exec.Cmd) bool { return false }
+// ownGroup starts the command suspended; Run puts it in its job object
+// (plat.JoinGroup) before it can start anything of its own.
+func ownGroup(cmd *exec.Cmd) bool {
+	plat.StartSuspended(cmd)
+	return true
+}

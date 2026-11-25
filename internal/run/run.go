@@ -96,6 +96,7 @@ func Run(o Options) int {
 	group := 0
 	if own {
 		group = cmd.Process.Pid
+		plat.JoinGroup(group)
 		judge.KeepGroups(sess.ID, group, nil)
 	}
 	exit, stopped := supervise(cmd, cmdDir, group)
@@ -116,6 +117,9 @@ func Run(o Options) int {
 		}
 	}
 	judge.KeepGroups(sess.ID, group, procs)
+	if group != 0 {
+		plat.Outlive(group, procs)
+	}
 	effects = fold(effects)
 
 	digest := core.Digest{Effects: effects, Pending: sess.Pending(), Blind: once(sess, blind)}
@@ -384,17 +388,19 @@ func EnsureShims(decls []judge.Declaration) (string, error) {
 //   - the `kill` builtin is routed through PATH so that it meets the shim too
 //     (job specs like %1 stay with the builtin, the only thing that knows them);
 //   - the shim directory is put back at the front of PATH whenever something
-//     has reset it. Harnesses source a profile snapshot before the command,
+//     has moved it from there (Git Bash puts its own directories first). Harnesses source a profile snapshot before the command,
 //     and commands source rc files and version managers, all of which rewrite
 //     PATH. The guard hands $_ back untouched so `mkdir d && cd $_` still works.
 func shellFor(shell, program string) (string, []string) {
 	if shell == "" {
 		shell = os.Getenv("SHELL")
 	}
-	switch filepath.Base(shell) {
+	switch strings.TrimSuffix(filepath.Base(shell), ".exe") {
 	case "bash", "zsh":
-		pre := `kill() { case "$*" in *%*) builtin kill "$@";; *) "$MEANT_SHIMS/kill" "$@";; esac; }; [ -n "$BASH_VERSION" ] && export -f kill` + "\n" +
-			`__meant_path() { case ":$PATH:" in *":$MEANT_SHIMS:"*) ;; *) PATH="$MEANT_SHIMS:$PATH";; esac; : "$1"; }; trap '__meant_path "$_"' DEBUG` + "\n"
+		// Under Git Bash the shim directory arrives as C:\...; the shell wants /c/...
+		pre := `__ms=$MEANT_SHIMS; case $__ms in [A-Za-z]:*) __ms=$(cygpath -u "$__ms");; esac; export __ms` + "\n" +
+			`kill() { case "$*" in *%*) builtin kill "$@";; *) "$__ms/kill" "$@";; esac; }; [ -n "$BASH_VERSION" ] && export -f kill` + "\n" +
+			`__meant_path() { case $PATH in "$__ms":*) ;; *) PATH="$__ms:$PATH";; esac; : "$1"; }; trap '__meant_path "$_"' DEBUG` + "\n"
 		return shell, []string{"-c", pre + program}
 	case "sh", "dash", "ksh", "fish":
 		return shell, []string{"-c", program}

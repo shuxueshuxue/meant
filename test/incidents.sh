@@ -92,17 +92,26 @@ echo "signals to processes the agent did not start (fleet 11-21, BSD pkill)"
 # very mistake this section is about (and one made while writing this file).
 env -u MEANT_SESSION sleep 43217 >/dev/null 2>&1 &
 victim=$!; disown 2>/dev/null; sleep 0.3
-run "ps -eo pid,args | awk '/sleep 4321[7]/ {print \$1}' | xargs kill; echo AFTER"
+if command -v pgrep >/dev/null; then
+  run "ps -eo pid,args | awk '/sleep 4321[7]/ {print \$1}' | xargs kill; echo AFTER"
+else  # Git Bash has neither pgrep nor ps -o; the pid reaches kill through xargs all the same
+  run "echo $victim | xargs kill; echo AFTER"
+fi
 check "ps | awk | xargs kill of a foreign process is stopped" stopped
 check "the process is still alive" kill -0 "$victim"
-run 'kill $(pgrep -f "sleep 4321[7]")'
+run "kill $victim"
 check "the kill builtin is seen too" stopped
-run 'pkill -f "sleep 4321[7]"'
-check "pkill is judged on what the pattern matches now" stopped
+if command -v pkill >/dev/null; then
+  run 'pkill -f "sleep 4321[7]"'
+  check "pkill is judged on what the pattern matches now" stopped
+else
+  printf '  skip  no pkill here\n'
+fi
 kill "$victim" 2>/dev/null
-run 'sleep 30771 >/dev/null 2>&1 & echo started'
-check "a process left running is reported" says 'still running: sleep 30771'
-run 'kill $(pgrep -f "sleep 3077[1]") && echo killed'
+run 'sleep 30771 >/dev/null 2>&1 & echo "started $!"'
+check "a process left running is reported" says 'still running: sleep'
+own=$(printf '%s' "$out" | sed -n 's/^started //p')
+run "kill $own && echo killed"
 check "killing a process this session started passes" says killed
 
 echo "uncommitted work destroyed (claude-code#7232, #34327)"
