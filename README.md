@@ -4,6 +4,18 @@
 
 **Lightweight, cross-platform safety for agent shell commands.**
 
+- **Effect-based.** Judges what a command does (the real paths, pids and
+  hosts it touches), never its name. No allowlist, no shell parser.
+- **Exec-time.** Sees the arguments after the shell has expanded every
+  variable, glob and `$(...)`, inside scripts and subprocesses too.
+- **ssh-aware.** Follows commands to the hosts you add and judges them there.
+- **Harness-agnostic.** One command attaches it to Claude Code or Codex;
+  anything else runs `meant run -c '...'`.
+- **Zero-config.** One static binary, no daemon, no root. Linux and macOS;
+  Windows builds and is not yet tested.
+- **Undo built in.** The workspace is snapshotted around every command, and
+  `reject` puts lost work back.
+
 Sandboxes, allowlists and permission prompts are built for an adversary. They
 ask *"is this command allowed?"* A mistaken agent passes that test every time:
 the command is allowed, it just does not do what the agent thinks it does.
